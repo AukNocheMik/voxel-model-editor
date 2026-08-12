@@ -289,34 +289,55 @@ function SpindleAssembly({ toolTip, isCutting, currentTool }: { toolTip: THREE.V
   if (!currentTool) return null
   const r = currentTool.diameter / 2
   const toolLen = currentTool.length
+  const shankR = currentTool.shankDiameter / 2
+
+  // 从 y=0（刀尖）向上连续堆叠，每段的顶部 = 下一段的底部，无缝衔接
+  const cutH = toolLen * 0.35          // 切削刃高度
+  const shankH = toolLen - cutH        // 刀柄高度（补满到 toolLen）
+  const colletH = 0.3                  // 夹头
+  const noseH = 0.8                    // 主轴锥（圆台）
+  const housingH = 1.5                 // 轴承壳
+  const motorH = 2.5                   // 电机
+
+  const colletY = toolLen + colletH / 2
+  const noseY = toolLen + colletH + noseH / 2
+  const housingY = toolLen + colletH + noseH + housingH / 2
+  const motorY = toolLen + colletH + noseH + housingH + motorH / 2
 
   return (
     <group ref={spindleRef}>
-      {/* 主轴电机壳 */}
-      <mesh position={[0, toolLen + 3, 0]} castShadow>
-        <cylinderGeometry args={[0.8, 0.8, 2.5, 20]} />
+      {/* —— 固定主轴壳体（不旋转）—— */}
+      {/* 电机 */}
+      <mesh position={[0, motorY, 0]} castShadow>
+        <cylinderGeometry args={[0.8, 0.8, motorH, 20]} />
         <primitive object={motorMat} attach="material" />
       </mesh>
-      <mesh position={[0, toolLen + 1.2, 0]} castShadow>
-        <cylinderGeometry args={[0.6, 0.7, 1.5, 20]} />
+      {/* 轴承壳 */}
+      <mesh position={[0, housingY, 0]} castShadow>
+        <cylinderGeometry args={[0.7, 0.7, housingH, 20]} />
         <primitive object={housingMat} attach="material" />
       </mesh>
-      {/* 主轴锥 */}
-      <mesh position={[0, toolLen + 0.2, 0]} castShadow>
-        <coneGeometry args={[0.5, 1.0, 16]} />
+      {/* 主轴锥（圆台：上粗下细，连接壳体与夹头）*/}
+      <mesh position={[0, noseY, 0]} castShadow>
+        <cylinderGeometry args={[0.7, Math.max(shankR + 0.15, 0.5), noseH, 20]} />
+        <primitive object={quillMat} attach="material" />
+      </mesh>
+      {/* 夹头（连接刀柄与主轴锥）*/}
+      <mesh position={[0, colletY, 0]} castShadow>
+        <cylinderGeometry args={[Math.max(shankR + 0.15, 0.5), shankR + 0.05, colletH, 16]} />
         <primitive object={quillMat} attach="material" />
       </mesh>
 
-      {/* 旋转刀具组 */}
+      {/* —— 旋转刀具组 —— */}
       <group ref={toolSpinRef}>
-        {/* 刀柄 */}
-        <mesh position={[0, toolLen * 0.75, 0]} castShadow>
-          <cylinderGeometry args={[currentTool.shankDiameter / 2, currentTool.shankDiameter / 2, toolLen * 0.5, 16]} />
+        {/* 刀柄：紧接切削刃顶部，延伸到 toolLen */}
+        <mesh position={[0, cutH + shankH / 2, 0]} castShadow>
+          <cylinderGeometry args={[shankR, shankR, shankH, 16]} />
           <primitive object={quillMat} attach="material" />
         </mesh>
-        {/* 切削刃 */}
-        <mesh position={[0, toolLen * 0.25, 0]} castShadow>
-          <cylinderGeometry args={[r, r, toolLen * 0.4, 16]} />
+        {/* 切削刃：从 y=0 到 y=cutH */}
+        <mesh position={[0, cutH / 2, 0]} castShadow>
+          <cylinderGeometry args={[r, r, cutH, 16]} />
           <primitive object={toolMat} attach="material" />
         </mesh>
         {/* 刀尖 */}
