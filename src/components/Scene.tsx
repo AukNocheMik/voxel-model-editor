@@ -1,5 +1,6 @@
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Environment, ContactShadows } from '@react-three/drei'
+import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Environment, Lightformer, ContactShadows } from '@react-three/drei'
 import * as THREE from 'three'
 import type { AppState, VoxelizationResult, VertexData } from '../types'
 import type { CutMove } from '../lib/toolpathPrograms'
@@ -31,7 +32,12 @@ function SceneContent(props: SceneProps) {
         shadow-camera-left={-10} shadow-camera-right={10}
         shadow-camera-top={10} shadow-camera-bottom={-10} />
       <directionalLight position={[-8, 5, -5]} intensity={0.4} />
-      <Environment preset="city" />
+      {/* 程序化环境光（Lightformer 本地渲染立方体贴图，不依赖外部 HDR CDN） */}
+      <Environment resolution={64}>
+        <Lightformer intensity={2} position={[10, 15, 8]} scale={10} />
+        <Lightformer intensity={1} position={[-8, 5, -5]} scale={10} />
+        <Lightformer intensity={0.5} position={[0, -5, 0]} scale={10} color="#4a90d9" />
+      </Environment>
 
       {state.mode === 'vertex' && (
         <VertexEditor geometry={geometry} vertices={vertices}
@@ -84,7 +90,9 @@ export default function Scene(props: SceneProps) {
         scene.background = new THREE.Color('#0d1117')
         scene.fog = new THREE.Fog('#0d1117', 20, 50)
       }}>
-      <SceneContent {...props} />
+      <Suspense fallback={null}>
+        <SceneContent {...props} />
+      </Suspense>
       <OrbitControls makeDefault enableDamping dampingFactor={0.08}
         autoRotate={props.state.render.autoRotate} autoRotateSpeed={0.5}
         minDistance={3} maxDistance={60} />
